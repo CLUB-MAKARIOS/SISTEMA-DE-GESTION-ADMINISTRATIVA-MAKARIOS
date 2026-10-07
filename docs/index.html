@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Club Makarios · Gestión</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f6f5f1;--card:#fff;--tx:#1d2320;--mu:#6b736e;--bd:#dcdad2;--ac:#2f6b4f;--ok:#2f6b4f;--wa:#b7791f;--er:#b83a2e}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161a18;--card:#202623;--tx:#eceee9;--mu:#9aa39d;--bd:#333b36;--ac:#5fb58a;--ok:#5fb58a;--wa:#e0a84a;--er:#e8776b}}
+:root[data-theme="dark"]{--bg:#161a18;--card:#202623;--tx:#eceee9;--mu:#9aa39d;--bd:#333b36;--ac:#5fb58a;--ok:#5fb58a;--wa:#e0a84a;--er:#e8776b}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{padding:14px 16px 0;max-width:1100px;margin:auto}h1{font-size:19px;margin:0}small,.mu{color:var(--mu)}
+nav{display:flex;gap:6px;overflow-x:auto;padding:10px 16px;max-width:1100px;margin:auto}
+nav button{border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:8px 14px;border-radius:20px;cursor:pointer;white-space:nowrap;font:inherit}
+nav button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+main{max-width:1100px;margin:auto;padding:0 16px 40px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.k,.box{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px 14px}
+.k b{display:block;font-size:22px;margin-top:2px}.box{margin-bottom:14px}.box h2{font-size:15px;margin:0 0 10px}
+.sc{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:560px}th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--bd);font-size:14px}th{color:var(--mu);font-weight:600}
+.tag{padding:2px 8px;border-radius:10px;font-size:12px;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.er{color:var(--er)}
+form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;align-items:end}
+label{font-size:12px;color:var(--mu);display:flex;flex-direction:column;gap:3px}
+input,select{font:inherit;padding:8px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);width:100%}
+.btn{background:var(--ac);color:#fff;border:0;padding:9px 14px;border-radius:8px;font:inherit;cursor:pointer}.btn.g{background:transparent;color:var(--ac);border:1px solid var(--ac)}
+.bar{display:flex;height:22px;border-radius:6px;overflow:hidden;background:var(--bd)}.bar i{display:block}
+.note{font-size:13px;color:var(--mu);margin-top:8px}
+</style></head><body>
+<header><h1>🏹 Club Makarios · Gestión</h1><small id="st">Cargando…</small><div style="margin-top:8px"><label style="flex-direction:row;align-items:center;gap:8px">Ver como: <select id="who" style="width:auto;max-width:70vw"></select></label></div></header>
+<nav id="nav"></nav><main id="app"></main>
+<script src="config.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const iso=d=>d.toISOString().slice(0,10),addD=(n)=>{const d=new Date();d.setDate(d.getDate()+n);return iso(d)};
+const TODAY=iso(new Date()),days=(a,b)=>Math.round((new Date(a)-new Date(b))/864e5);
+const m=n=>'$'+(+n).toLocaleString('es-EC',{minimumFractionDigits:2,maximumFractionDigits:2});
+let S={socios:[],obl:[],pagos:[],log:[],cats:[],users:[]},tab='Tablero',ref=null,tm=null,cur=null;
+const PL={tablero:'Ver tablero',socios_ver:'Ver socios',socios_edit:'Crear/editar socios',cartera_ver:'Ver cuentas por cobrar',cargos_crear:'Crear cargos',pagos:'Registrar pagos',alertas:'Ver alertas',bitacora:'Ver bitácora',admin:'Administrar usuarios y categorías'};
+const P=l=>Object.fromEntries(Object.keys(PL).map(k=>[k,l.includes(k)]));
+const ROLES={'Administrador':P(Object.keys(PL)),'Tesorería':P(['tablero','socios_ver','cartera_ver','cargos_crear','pagos']),'Cobranza':P(['tablero','socios_ver','cartera_ver','alertas']),'Secretaría deportiva':P(['socios_ver','socios_edit']),'Directiva':P(['tablero','socios_ver','cartera_ver','alertas','bitacora'])};
+function ensure(){if(!S.cats||!S.cats.length)S.cats=['Adulto','Juvenil','Infantil'];if(!S.users||!S.users.length)S.users=[{id:'u0',nombre:'Administrador',rol:'Administrador',perms:{...ROLES['Administrador']}}];if(!S.users.find(u=>u.id===cur))cur=S.users[0].id}
+const me=()=>S.users.find(u=>u.id===cur)||{nombre:'—',perms:{}};const can=p=>!!me().perms[p];
+const uid=p=>p+Math.random().toString(36).slice(2,8);
+const paid=o=>S.pagos.filter(p=>p.oblId===o.id).reduce((a,p)=>a+p.importe,0);
+const saldo=o=>Math.max(0,+(o.importe-paid(o)).toFixed(2));
+const mora=o=>Math.max(0,days(TODAY,o.venc));
+const estado=o=>saldo(o)<=0?'Pagada':mora(o)>0?'Vencida':paid(o)>0?'Abonada':'Pendiente';
+const socio=id=>S.socios.find(s=>s.id===id)||{nombre:'—'};
+const bucket=d=>d<=30?'1–30':d<=60?'31–60':d<=90?'61–90':'+90';
+function log(t){S.log.unshift({f:new Date().toLocaleString('es-EC'),t:'['+me().nombre+'] '+t});S.log=S.log.slice(0,200)}
+function save(){render();if(!ref)return;clearTimeout(tm);tm=setTimeout(()=>ref.set(S).then(()=>$('#st').textContent='Guardado ✓').catch(()=>$('#st').textContent='No se pudo guardar'),600)}
+function demo(){
+ const n=['Ana Mora','Luis Paredes','Carla Vera','Diego Salas','Elena Ruiz','Marco Cedeño'],c=['Adulto','Juvenil','Adulto','Infantil','Adulto','Juvenil'];
+ S.socios=n.map((x,i)=>({id:'s'+i,codigo:'S-00'+(i+1),nombre:x,ident:'09'+(10000000+i*1234567),tel:'09900000'+i,email:x.split(' ')[0].toLowerCase()+'@mail.com',cat:c[i],estado:'Activo'}));
+ const off=[[-40,0],[-12,0],[-3,0],[5,0],[0,0],[-20,0]];S.obl=[];S.pagos=[];
+ S.socios.forEach((s,i)=>{S.obl.push({id:'o'+i,socioId:s.id,concepto:'Mensualidad',importe:40,emision:addD(off[i][0]-25),venc:addD(off[i][0])});});
+ S.obl.push({id:'oX',socioId:'s1',concepto:'Inscripción torneo',importe:25,emision:addD(-30),venc:addD(-65)});
+ S.pagos.push({id:'p1',fecha:addD(-2),socioId:'s5',oblId:'o5',importe:15,metodo:'Transferencia',ref:'TR-1021'},{id:'p2',fecha:addD(-1),socioId:'s2',oblId:'o2',importe:40,metodo:'Efectivo',ref:''});
+ log('Datos de ejemplo cargados');save()}
+function alertas(){const r=[];S.obl.forEach(o=>{if(saldo(o)<=0)return;const d=days(o.venc,TODAY),mo=mora(o);let t=null,l=0;
+ if(mo>=15){t='Lista prioritaria de recuperación';l=3}else if(mo>=8){t='Tarea de cobranza al responsable';l=2}else if(mo>=1){t='Vencida: iniciar seguimiento de mora';l=1}else if(d===0){t='Vence hoy: avisar al socio';l=1}else if(d>0&&d<=5){t='Recordatorio: vence en '+d+' día(s)';l=0}
+ if(t)r.push({o,t,l,mo})});return r.sort((a,b)=>b.l-a.l||b.mo-a.mo)}
+const TABS=[['Tablero','tablero'],['Socios','socios_ver'],['Cuentas por cobrar','cartera_ver'],['Registrar pago','pagos'],['Alertas','alertas'],['Bitácora','bitacora'],['Usuarios y categorías','admin']];
+function nav(){const ts=TABS.filter(t=>can(t[1])).map(t=>t[0]);if(!ts.includes(tab))tab=ts[0]||'';
+$('#nav').innerHTML=ts.map(t=>`<button class="${t===tab?'on':''}" data-t="${t}">${t}</button>`).join('');document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>{tab=b.dataset.t;render()});
+$('#who').innerHTML=S.users.map(u=>`<option value="${u.id}" ${u.id===cur?'selected':''}>${esc(u.nombre)} (${esc(u.rol)})</option>`).join('');$('#who').onchange=e=>{cur=e.target.value;render()}}
+const tag=e=>`<span class="tag ${e==='Pagada'?'ok':e==='Vencida'?'er':'wa'}">${e}</span>`;
+function vTablero(){
+ const ab=S.obl.filter(o=>saldo(o)>0),tot=ab.reduce((a,o)=>a+saldo(o),0),ven=ab.filter(o=>mora(o)>0),tv=ven.reduce((a,o)=>a+saldo(o),0);
+ const nxt=k=>ab.filter(o=>{const d=days(o.venc,TODAY);return d>=0&&d<=k}).reduce((a,o)=>a+saldo(o),0);
+ const rec=S.pagos.filter(p=>p.fecha.slice(0,7)===TODAY.slice(0,7)).reduce((a,p)=>a+p.importe,0);
+ const B={'1–30':0,'31–60':0,'61–90':0,'+90':0};ven.forEach(o=>B[bucket(mora(o))]+=saldo(o));
+ const col=['#d9a441','#d97b3a','#c4513a','#8f2a22'],keys=Object.keys(B);
+ const morosos=[...new Set(ven.map(o=>o.socioId))];
+ return `<div class="grid">
+ <div class="k"><span class="mu">Cartera pendiente</span><b>${m(tot)}</b></div>
+ <div class="k"><span class="mu">Cartera vencida</span><b class="er">${m(tv)}</b><small>${tot?(tv/tot*100).toFixed(1):0}% de la cartera</small></div>
+ <div class="k"><span class="mu">Recaudado este mes</span><b class="ok">${m(rec)}</b></div>
+ <div class="k"><span class="mu">Socios en mora</span><b>${morosos.length}</b><small>de ${S.socios.length} socios</small></div>
+ <div class="k"><span class="mu">Vence hoy / 7 / 15 / 30 días</span><b style="font-size:15px">${m(nxt(0))} · ${m(nxt(7))} · ${m(nxt(15))} · ${m(nxt(30))}</b></div></div>
+ <div class="box"><h2>Antigüedad de cartera vencida</h2><div class="bar">${keys.map((k,i)=>`<i style="width:${tv?B[k]/tv*100:0}%;background:${col[i]}"></i>`).join('')}</div>
+ <div class="sc"><table><tr>${keys.map((k,i)=>`<th><span style="color:${col[i]}">●</span> ${k} días</th>`).join('')}</tr><tr>${keys.map(k=>`<td>${m(B[k])}</td>`).join('')}</tr></table></div></div>
+ <div class="box"><h2>Socios con pagos atrasados</h2><div class="sc"><table><tr><th>Socio</th><th>Concepto</th><th>Saldo</th><th>Días de mora</th></tr>${ven.sort((a,b)=>mora(b)-mora(a)).map(o=>`<tr><td>${esc(socio(o.socioId).nombre)}</td><td>${esc(o.concepto)}</td><td>${m(saldo(o))}</td><td class="er">${mora(o)}</td></tr>`).join('')||'<tr><td colspan=4 class="mu">Sin atrasos</td></tr>'}</table></div></div>
+ ${S.socios.length?'':'<div class="box"><b>Aún no hay datos.</b> Pulsa «Cargar datos de ejemplo» en Socios para ver el sistema funcionando.</div>'}`}
+function vSocios(){return (can('socios_edit')?`<div class="box"><h2>Nuevo socio</h2><form id="fs"><label>Nombre<input name="n" required></label><label>Identificación<input name="i"></label><label>Teléfono<input name="t"></label><label>Correo<input name="e" type="email"></label><label>Categoría<select name="c">${S.cats.map(c=>`<option>${esc(c)}`).join('')}</select></label><button class="btn">Guardar socio</button></form>
+ <p class="note">${S.socios.length||!can('admin')?'':'<button class="btn g" id="dm" type="button">Cargar datos de ejemplo</button>'}</p></div>`:'')+`
+ <div class="box sc"><table><tr><th>Código</th><th>Nombre</th><th>Categoría</th><th>Teléfono</th><th>Estado</th><th>Saldo</th></tr>${S.socios.map(s=>`<tr><td>${esc(s.codigo)}</td><td>${esc(s.nombre)}</td><td>${esc(s.cat)}</td><td>${esc(s.tel)}</td><td>${esc(s.estado)}</td><td>${m(S.obl.filter(o=>o.socioId===s.id).reduce((a,o)=>a+saldo(o),0))}</td></tr>`).join('')}</table></div>`}
+function vObl(){const opts=S.socios.map(s=>`<option value="${s.id}">${esc(s.nombre)}</option>`).join('');
+ return (can('cargos_crear')?`<div class="box"><h2>Nueva cuota o cargo</h2><form id="fo"><label>Socio<select name="s" required>${opts}</select></label><label>Concepto<select name="c"><option>Mensualidad<option>Inscripción<option>Entrenamiento<option>Competencia<option>Cargo extraordinario</select></label><label>Importe<input name="m" type="number" step="0.01" min="0.01" required></label><label>Vencimiento<input name="v" type="date" value="${addD(30)}" required></label><button class="btn">Generar</button></form></div>`:'')+`
+ <div class="box sc"><table><tr><th>Socio</th><th>Concepto</th><th>Vence</th><th>Importe</th><th>Saldo</th><th>Estado</th><th>Mora</th></tr>${S.obl.slice().sort((a,b)=>a.venc<b.venc?-1:1).map(o=>`<tr><td>${esc(socio(o.socioId).nombre)}</td><td>${esc(o.concepto)}</td><td>${o.venc}</td><td>${m(o.importe)}</td><td>${m(saldo(o))}</td><td>${tag(estado(o))}</td><td>${mora(o)&&saldo(o)?mora(o)+' d':''}</td></tr>`).join('')}</table></div>`}
+function vPago(){const ab=S.obl.filter(o=>saldo(o)>0);
+ return `<div class="box"><h2>Registrar cobro</h2><form id="fp"><label>Obligación<select name="o" required>${ab.map(o=>`<option value="${o.id}">${esc(socio(o.socioId).nombre)} · ${esc(o.concepto)} · saldo ${m(saldo(o))}</option>`).join('')}</select></label><label>Importe<input name="m" type="number" step="0.01" min="0.01" required></label><label>Método<select name="t"><option>Efectivo<option>Transferencia<option>Depósito<option>Tarjeta</select></label><label>Referencia<input name="r"></label><button class="btn">Registrar</button></form><p class="note">Un pago menor al saldo queda como abono; el saldo se recalcula solo y no puede superar lo adeudado.</p></div>
+ <div class="box sc"><h2>Últimos pagos</h2><table><tr><th>Fecha</th><th>Socio</th><th>Importe</th><th>Método</th><th>Ref.</th></tr>${S.pagos.slice().reverse().map(p=>`<tr><td>${p.fecha}</td><td>${esc(socio(p.socioId).nombre)}</td><td>${m(p.importe)}</td><td>${esc(p.metodo)}</td><td>${esc(p.ref)}</td></tr>`).join('')}</table></div>`}
+function vAl(){const a=alertas();return `<div class="box sc"><h2>Alertas según reglas de ejemplo (5 días antes · hoy · 1 · 8 · 15 días)</h2><table><tr><th>Acción</th><th>Socio</th><th>Concepto</th><th>Saldo</th><th>Mora</th></tr>${a.map(x=>`<tr><td><span class="tag ${x.l>=2?'er':'wa'}">${x.t}</span></td><td>${esc(socio(x.o.socioId).nombre)}</td><td>${esc(x.o.concepto)}</td><td>${m(saldo(x.o))}</td><td>${x.mo||''}</td></tr>`).join('')||'<tr><td colspan=5 class="mu">Sin alertas</td></tr>'}</table><p class="note">Vista previa de qué avisaría el sistema hoy. El envío automático por correo/WhatsApp requiere el servidor definitivo.</p></div>`}
+function vLog(){return `<div class="box sc"><table><tr><th>Fecha y hora</th><th>Acción</th></tr>${S.log.map(l=>`<tr><td>${l.f}</td><td>${esc(l.t)}</td></tr>`).join('')||'<tr><td colspan=2 class="mu">Sin movimientos</td></tr>'}</table></div>`}
+function vAdmin(){
+ const adm=S.users.filter(u=>u.perms.admin).length;
+ return `<div class="box"><h2>Categorías de socios</h2><form id="fc"><label>Nueva categoría<input name="n" required></label><button class="btn">Agregar</button></form>
+ <div class="sc"><table><tr><th>Nombre</th><th>Socios</th><th></th></tr>${S.cats.map((c,i)=>`<tr><td><input data-cn="${i}" value="${esc(c)}"></td><td>${S.socios.filter(x=>x.cat===c).length}</td><td><button class="btn g" data-cs="${i}">Guardar nombre</button> <button class="btn g" data-cd="${i}">Eliminar</button></td></tr>`).join('')}</table></div>
+ <p class="note">Al cambiar un nombre se actualizan los socios que lo usan. Solo se puede eliminar una categoría sin socios.</p></div>
+ <div class="box"><h2>Nuevo usuario</h2><form id="fu"><label>Nombre<input name="n" required></label><label>Rol base<select name="r">${Object.keys(ROLES).map(r=>`<option>${r}`).join('')}</select></label><button class="btn">Crear usuario</button></form></div>
+ ${S.users.map(u=>`<div class="box"><h2>${esc(u.nombre)}</h2><div class="grid" style="margin-bottom:8px"><label>Rol<select data-ur="${u.id}">${Object.keys(ROLES).map(r=>`<option ${r===u.rol?'selected':''}>${r}`).join('')}</select></label><label>Nombre<input data-un="${u.id}" value="${esc(u.nombre)}"></label></div>
+ <div class="grid">${Object.keys(PL).map(k=>`<label style="flex-direction:row;align-items:center;gap:6px;color:var(--tx)"><input type="checkbox" style="width:auto" data-u="${u.id}" data-p="${k}" ${u.perms[k]?'checked':''}>${PL[k]}</label>`).join('')}</div>
+ <p><button class="btn g" data-us="${u.id}">Guardar nombre</button> <button class="btn g" data-ud="${u.id}">Eliminar usuario</button></p></div>`).join('')}
+ <p class="note">Cada permiso se puede activar o quitar por usuario. Siempre debe quedar al menos un administrador.</p>`}
+function bindAdmin(){const q=s=>document.querySelectorAll(s),U=id=>S.users.find(u=>u.id===id),last=u=>u.perms.admin&&S.users.filter(x=>x.perms.admin).length===1;
+ if($('#fc'))$('#fc').onsubmit=e=>{e.preventDefault();const n=new FormData(e.target).get('n').trim();if(!n||S.cats.some(c=>c.toLowerCase()===n.toLowerCase())){alert('Nombre vacío o repetido.');return}S.cats.push(n);log('Categoría creada: '+n);save()};
+ q('[data-cs]').forEach(b=>b.onclick=()=>{const i=+b.dataset.cs,old=S.cats[i],n=document.querySelector(`[data-cn="${i}"]`).value.trim();if(!n||S.cats.some((c,k)=>k!==i&&c.toLowerCase()===n.toLowerCase())){alert('Nombre vacío o repetido.');return}S.socios.forEach(x=>{if(x.cat===old)x.cat=n});S.cats[i]=n;log(`Categoría renombrada: ${old} → ${n}`);save()});
+ q('[data-cd]').forEach(b=>b.onclick=()=>{const i=+b.dataset.cd,c=S.cats[i];if(S.socios.some(x=>x.cat===c)){alert('Hay socios en esta categoría.');return}if(S.cats.length<2){alert('Debe existir al menos una categoría.');return}S.cats.splice(i,1);log('Categoría eliminada: '+c);save()});
+ if($('#fu'))$('#fu').onsubmit=e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));S.users.push({id:uid('u'),nombre:d.n.trim(),rol:d.r,perms:{...ROLES[d.r]}});log('Usuario creado: '+d.n);save()};
+ q('[data-ur]').forEach(x=>x.onchange=()=>{const u=U(x.dataset.ur);if(last(u)&&!ROLES[x.value].admin){alert('Debe quedar al menos un administrador.');render();return}u.rol=x.value;u.perms={...ROLES[x.value]};log(`Rol de ${u.nombre}: ${x.value}`);save()});
+ q('[data-p]').forEach(x=>x.onchange=()=>{const u=U(x.dataset.u);if(x.dataset.p==='admin'&&!x.checked&&last(u)){alert('Debe quedar al menos un administrador.');render();return}u.perms[x.dataset.p]=x.checked;u.rol='Personalizado';log(`Permiso «${PL[x.dataset.p]}» ${x.checked?'activado':'quitado'} a ${u.nombre}`);save()});
+ q('[data-us]').forEach(b=>b.onclick=()=>{const u=U(b.dataset.us),n=document.querySelector(`[data-un="${u.id}"]`).value.trim();if(n){u.nombre=n;log('Usuario renombrado: '+n);save()}});
+ q('[data-ud]').forEach(b=>b.onclick=()=>{const u=U(b.dataset.ud);if(last(u)){alert('Debe quedar al menos un administrador.');return}if(!confirm('¿Eliminar a '+u.nombre+'?'))return;S.users=S.users.filter(x=>x!==u);log('Usuario eliminado: '+u.nombre);save()})}
+function render(){ensure();nav();const v={Tablero:vTablero,Socios:vSocios,'Cuentas por cobrar':vObl,'Registrar pago':vPago,Alertas:vAl,'Bitácora':vLog,'Usuarios y categorías':vAdmin}[tab];$('#app').innerHTML=v?v():'<div class="box">Este usuario no tiene permisos.</div>';bind();bindAdmin()}
+function bind(){const f=id=>$(id),fd=e=>Object.fromEntries(new FormData(e.target));
+ if(f('#dm'))f('#dm').onclick=demo;
+ if(f('#fs'))f('#fs').onsubmit=e=>{e.preventDefault();const d=fd(e),id=uid('s');S.socios.push({id,codigo:'S-'+String(S.socios.length+1).padStart(3,'0'),nombre:d.n,ident:d.i,tel:d.t,email:d.e,cat:d.c,estado:'Activo'});log('Socio creado: '+d.n);save()};
+ if(f('#fo'))f('#fo').onsubmit=e=>{e.preventDefault();const d=fd(e);S.obl.push({id:uid('o'),socioId:d.s,concepto:d.c,importe:+d.m,emision:TODAY,venc:d.v});log(`Cargo ${d.c} ${m(d.m)} a ${socio(d.s).nombre}`);save()};
+ if(f('#fp'))f('#fp').onsubmit=e=>{e.preventDefault();const d=fd(e),o=S.obl.find(x=>x.id===d.o);let imp=+d.m;if(imp>saldo(o)){alert('El importe supera el saldo ('+m(saldo(o))+').');return}
+  S.pagos.push({id:uid('p'),fecha:TODAY,socioId:o.socioId,oblId:o.id,importe:imp,metodo:d.t,ref:d.r});log(`Pago ${m(imp)} de ${socio(o.socioId).nombre} (${d.t})`);save()}}
+render();
+(async()=>{try{
+ const C=window.CLUB_CONFIG||{api:'local'};
+ if(C.api==='local'){
+  const K='club-makarios:state';
+  ref={set:x=>{localStorage.setItem(K,JSON.stringify(x));return Promise.resolve()}};
+  const raw=localStorage.getItem(K);if(raw)S=Object.assign(S,JSON.parse(raw));
+  ensure();$('#st').textContent='Modo local: los datos se guardan solo en este navegador';render();return}
+ const base=C.api,hdr={'Content-Type':'application/json'};
+ if(base){let pw=sessionStorage.getItem('pw');if(!pw){pw=prompt('Contraseña de acceso:')||'';sessionStorage.setItem('pw',pw)}
+  hdr.Authorization='Basic '+btoa(unescape(encodeURIComponent('club:'+pw)))}
+ ref={set:x=>fetch(base+'/api/state',{method:'PUT',headers:hdr,body:JSON.stringify(x)}).then(r=>{if(r.status===401)sessionStorage.removeItem('pw');if(!r.ok)throw new Error('http '+r.status)})};
+ const r=await fetch(base+'/api/state',{headers:hdr});if(!r.ok){if(r.status===401)sessionStorage.removeItem('pw');throw new Error('http '+r.status)}
+ const d=await r.json();if(d&&Object.keys(d).length)S=Object.assign(S,d);
+ ensure();$('#st').textContent='Conectado ✓';render()}catch(e){ref=null;$('#st').textContent='Sin conexión al servidor: los cambios NO se guardarán'}})();
+</script></body></html>
