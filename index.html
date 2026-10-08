@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Club Makarios · Gestión</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f6f5f1;--card:#fff;--tx:#1d2320;--mu:#6b736e;--bd:#dcdad2;--ac:#2f6b4f;--ok:#2f6b4f;--wa:#b7791f;--er:#b83a2e}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161a18;--card:#202623;--tx:#eceee9;--mu:#9aa39d;--bd:#333b36;--ac:#5fb58a;--ok:#5fb58a;--wa:#e0a84a;--er:#e8776b}}
+:root[data-theme="dark"]{--bg:#161a18;--card:#202623;--tx:#eceee9;--mu:#9aa39d;--bd:#333b36;--ac:#5fb58a;--ok:#5fb58a;--wa:#e0a84a;--er:#e8776b}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{padding:14px 16px 0;max-width:1100px;margin:auto}h1{font-size:19px;margin:0}small,.mu{color:var(--mu)}
+.hd{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px}
+#ses{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:14px}
+nav{display:flex;gap:6px;overflow-x:auto;padding:10px 16px;max-width:1100px;margin:auto}
+nav button{border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:8px 14px;border-radius:20px;cursor:pointer;white-space:nowrap;font:inherit}
+nav button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+main{max-width:1100px;margin:auto;padding:0 16px 40px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.k,.box{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px 14px}
+.k b{display:block;font-size:22px;margin-top:2px}.box{margin-bottom:14px}.box h2{font-size:15px;margin:0 0 10px}
+.sc{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:560px}th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--bd);font-size:14px}th{color:var(--mu);font-weight:600}
+.tag{padding:2px 8px;border-radius:10px;font-size:12px;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.er{color:var(--er)}
+form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;align-items:end}
+label{font-size:12px;color:var(--mu);display:flex;flex-direction:column;gap:3px}
+input,select{font:inherit;padding:8px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);width:100%}
+.btn{background:var(--ac);color:#fff;border:0;padding:9px 14px;border-radius:8px;font:inherit;cursor:pointer}.btn.g{background:transparent;color:var(--ac);border:1px solid var(--ac)}
+.btn.sm{padding:5px 10px;font-size:13px}
+.bar{display:flex;height:22px;border-radius:6px;overflow:hidden;background:var(--bd)}.bar i{display:block}
+.note{font-size:13px;color:var(--mu);margin-top:8px}
+.msg{font-size:14px;padding:9px 11px;border-radius:8px;border:1px solid currentColor;margin:0 0 12px}
+.cred{font-family:ui-monospace,Menlo,Consolas,monospace;background:var(--bg);padding:1px 6px;border-radius:5px}
+/* Inicio de sesión */
+#gate{display:none;min-height:100vh;align-items:center;justify-content:center;padding:24px 16px}
+body.out header,body.out nav,body.out main{display:none}body.out #gate{display:flex}
+.lg{width:100%;max-width:380px;background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:26px 22px}
+.lg .brand{font-weight:700;font-size:18px;margin-bottom:2px}.lg h2{font-size:15px;font-weight:500;color:var(--mu);margin:0 0 18px}
+.lg form{grid-template-columns:1fr;gap:12px}.lg .btn{width:100%;padding:11px}
+.lg .lnk{background:none;border:0;color:var(--ac);font:inherit;font-size:14px;cursor:pointer;padding:4px 0;text-align:center;width:100%}
+.lg .chk{flex-direction:row;align-items:center;gap:6px}.lg .chk input{width:auto}
+.lg p.q{margin:0;font-weight:600}
+</style></head><body class="out">
+<div id="gate"></div>
+<header><div class="hd"><div><h1>🏹 Club Makarios · Gestión</h1><small id="st">Cargando…</small></div><div id="ses"></div></div></header>
+<nav id="nav"></nav><main id="app"></main>
+<script src="config.js"></script>
+<script src="auth-core.js"></script>
+<script>
+const A=window.AuthCore;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const iso=d=>d.toISOString().slice(0,10),addD=(n)=>{const d=new Date();d.setDate(d.getDate()+n);return iso(d)};
+const TODAY=iso(new Date()),days=(a,b)=>Math.round((new Date(a)-new Date(b))/864e5);
+const m=n=>'$'+(+n).toLocaleString('es-EC',{minimumFractionDigits:2,maximumFractionDigits:2});
+const blank=()=>({socios:[],obl:[],pagos:[],log:[],cats:[],users:[]});
+let S=blank(),tab='Tablero',ref=null,tm=null,cur=null,ready=false;
+let MODE='local',BASE='',TOK=null,NEEDSETUP=false;
+const {PL,ROLES,PREGUNTAS,normA,tempPw}=A;
+
+/* ---------- Almacenamiento de sesión ---------- */
+const store=k=>({get:()=>{try{return sessionStorage.getItem(k)}catch(e){return null}},set:v=>{try{v?sessionStorage.setItem(k,v):sessionStorage.removeItem(k)}catch(e){}}});
+const SS=store('mk-sesion'),TK=store('mk-token');
+
+const me=()=>S.users.find(u=>u.id===cur)||{nombre:'—',perms:{}};const can=p=>p===null||!!me().perms[p];
+const uid=p=>p+Math.random().toString(36).slice(2,8);
+const paid=o=>S.pagos.filter(p=>p.oblId===o.id).reduce((a,p)=>a+p.importe,0);
+const saldo=o=>Math.max(0,+(o.importe-paid(o)).toFixed(2));
+const mora=o=>Math.max(0,days(TODAY,o.venc));
+const estado=o=>saldo(o)<=0?'Pagada':mora(o)>0?'Vencida':paid(o)>0?'Abonada':'Pendiente';
+const socio=id=>S.socios.find(s=>s.id===id)||{nombre:'—'};
+const bucket=d=>d<=30?'1–30':d<=60?'31–60':d<=90?'61–90':'+90';
+function log(t){A.addLog(S,me().nombre,t)}
+function save(){render();if(!ref)return;clearTimeout(tm);tm=setTimeout(()=>{tm=null;ref.set(S).then(()=>$('#st').textContent='Guardado ✓').catch(()=>$('#st').textContent='No se pudo guardar')},600)}
+async function flush(){if(tm){clearTimeout(tm);tm=null;if(ref)try{await ref.set(S)}catch(e){}}}
+
+/* ---------- Conexión con el servidor ---------- */
+const hdr=()=>Object.assign({'Content-Type':'application/json'},TOK?{Authorization:'Bearer '+TOK}:{});
+function expired(){TOK=null;TK.set(null);cur=null;ready&&(gv='login',gmsg={k:'wa',t:'Tu sesión expiró. Vuelve a iniciar sesión.'});render()}
+async function reload(){if(!TOK)return false;
+ try{const r=await fetch(BASE+'/api/state',{headers:hdr()});if(r.status===401){TOK=null;TK.set(null);return false}if(!r.ok)throw 0;
+  const d=await r.json();S=Object.assign(blank(),d.state||{});A.ensure(S);cur=d.userId;return true}catch(e){$('#st').textContent='Sin conexión al servidor';return false}}
+/* Todas las acciones de contraseñas pasan por aquí: en modo local se resuelven en el navegador,
+   en modo servidor las valida el servidor (las claves nunca viajan al navegador). */
+async function api(a,b){
+ if(MODE==='local'){const r=A.handle(S,a,b,a==='changeTemp'?gid:cur);if(r.dirty&&ref)ref.set(S);return r}
+ await flush();
+ let r;try{const x=await fetch(BASE+'/api/auth/'+a,{method:'POST',headers:hdr(),body:JSON.stringify(b||{})});r=await x.json()}catch(e){return {ok:false,err:'No hay conexión con el servidor.'}}
+ if(r.token){TOK=r.token;TK.set(TOK)}
+ if(a==='logout'){TOK=null;TK.set(null)}
+ if(r.ok&&a==='setup')NEEDSETUP=false;
+ if(r.ok&&TOK&&!r.temp&&a!=='logout')await reload();
+ return r}
+
+function demo(){
+ const n=['Ana Mora','Luis Paredes','Carla Vera','Diego Salas','Elena Ruiz','Marco Cedeño'],c=['Adulto','Juvenil','Adulto','Infantil','Adulto','Juvenil'];
+ S.socios=n.map((x,i)=>({id:'s'+i,codigo:'S-00'+(i+1),nombre:x,ident:'09'+(10000000+i*1234567),tel:'09900000'+i,email:x.split(' ')[0].toLowerCase()+'@mail.com',cat:c[i],estado:'Activo'}));
+ const off=[[-40,0],[-12,0],[-3,0],[5,0],[0,0],[-20,0]];S.obl=[];S.pagos=[];
+ S.socios.forEach((s,i)=>{S.obl.push({id:'o'+i,socioId:s.id,concepto:'Mensualidad',importe:40,emision:addD(off[i][0]-25),venc:addD(off[i][0])});});
+ S.obl.push({id:'oX',socioId:'s1',concepto:'Inscripción torneo',importe:25,emision:addD(-30),venc:addD(-65)});
+ S.pagos.push({id:'p1',fecha:addD(-2),socioId:'s5',oblId:'o5',importe:15,metodo:'Transferencia',ref:'TR-1021'},{id:'p2',fecha:addD(-1),socioId:'s2',oblId:'o2',importe:40,metodo:'Efectivo',ref:''});
+ log('Datos de ejemplo cargados');save()}
+function alertas(){const r=[];S.obl.forEach(o=>{if(saldo(o)<=0)return;const d=days(o.venc,TODAY),mo=mora(o);let t=null,l=0;
+ if(mo>=15){t='Lista prioritaria de recuperación';l=3}else if(mo>=8){t='Tarea de cobranza al responsable';l=2}else if(mo>=1){t='Vencida: iniciar seguimiento de mora';l=1}else if(d===0){t='Vence hoy: avisar al socio';l=1}else if(d>0&&d<=5){t='Recordatorio: vence en '+d+' día(s)';l=0}
+ if(t)r.push({o,t,l,mo})});return r.sort((a,b)=>b.l-a.l||b.mo-a.mo)}
+
+/* ---------- Pantalla de inicio de sesión ---------- */
+let gv='login',gmsg=null,gid=null,gU=null,idle=null,busy=false;
+const pwField=(n,l,ac)=>`<label>${l}<input type="password" name="${n}" autocomplete="${ac||'new-password'}" required></label>`;
+const qSelect=(sel)=>`<label>Pregunta de seguridad<select name="pq" required>${PREGUNTAS.map(p=>`<option ${p===sel?'selected':''}>${esc(p)}</option>`).join('')}</select></label><label>Respuesta<input name="pr" required autocomplete="off"></label>`;
+const showChk=`<label class="chk"><input type="checkbox" id="shw"> Mostrar contraseñas</label>`;
+function gate(){
+ const setup=MODE==='local'?A.needSetup(S):NEEDSETUP;
+ if(setup)gv='setup';else if(gv==='setup')gv='login';
+ const card=(t,b)=>`<div class="lg"><div class="brand">🏹 Club Makarios</div><h2>${t}</h2>${gmsg?`<p class="msg ${gmsg.k}">${esc(gmsg.t)}</p>`:''}${b}<p class="note" style="text-align:center;margin-top:16px">${esc($('#st').textContent)}</p></div>`;
+ const back=`<button type="button" class="lnk" data-go="login">← Volver al inicio de sesión</button>`;
+ let h='';
+ if(gv==='setup'){const a=MODE==='local'?(S.users.find(u=>u.perms&&u.perms.admin)||S.users[0]):{nombre:'Administrador',usuario:'admin'};
+  h=card('Primera configuración: crea el acceso del administrador',`<form id="gs"><label>Nombre<input name="n" value="${esc(a.nombre)}" required></label><label>Usuario<input name="u" value="${esc(a.usuario)}" required autocomplete="username"></label>${pwField('p','Contraseña')}${pwField('c','Confirmar contraseña')}${qSelect()}${showChk}<button class="btn">Crear acceso</button></form><p class="note">La pregunta de seguridad te permitirá recuperar la contraseña si la olvidas.</p>`)}
+ else if(gv==='change'&&gU){h=card(`Hola ${esc(gU.nombre)}, crea tu propia contraseña`,`<p class="note" style="margin-top:0">Ingresaste con una contraseña temporal. Para continuar, define una contraseña personal y una pregunta de seguridad.</p><form id="gc">${pwField('p','Nueva contraseña')}${pwField('c','Confirmar contraseña')}${qSelect(gU.preg)}${showChk}<button class="btn">Guardar y entrar</button></form><p class="note">Mínimo 8 caracteres, con letras y números.</p>${back}`)}
+ else if(gv==='forgot1'){h=card('Recuperar contraseña',`<form id="gf1"><label>Usuario o correo<input name="u" required autocomplete="username"></label><button class="btn">Continuar</button></form>${back}`)}
+ else if(gv==='forgot2'&&gU){h=card('Recuperar contraseña',`<form id="gf2"><p class="q">${esc(gU.preg)}</p><label>Tu respuesta<input name="r" required autocomplete="off"></label>${pwField('p','Nueva contraseña')}${pwField('c','Confirmar contraseña')}${showChk}<button class="btn">Cambiar contraseña</button></form><p class="note">Mínimo 8 caracteres, con letras y números.</p>${back}`)}
+ else{gv='login';h=card('Inicia sesión para continuar',`<form id="gl"><label>Usuario o correo<input name="u" required autocomplete="username" autofocus></label><label>Contraseña<input type="password" name="p" required autocomplete="current-password"></label>${showChk}<button class="btn">Ingresar</button></form><button type="button" class="lnk" data-go="forgot1">¿Olvidaste tu contraseña?</button>`)}
+ $('#gate').innerHTML=h;bindGate()}
+function go(v,msg){gv=v;gmsg=msg||null;gate()}
+function enter(id){cur=id;SS.set(MODE==='local'?id:null);gv='login';gmsg=null;gU=null;gid=null;tab='Tablero';render()}
+async function logout(msg){await api('logout');cur=null;SS.set(null);gv='login';gmsg=msg||null;if(MODE!=='local')S=blank();render()}
+const once=fn=>async e=>{e.preventDefault();if(busy)return;busy=true;try{await fn(Object.fromEntries(new FormData(e.target)))}finally{busy=false}};
+function bindGate(){const f=id=>$(id);
+ document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go));
+ if(f('#shw'))f('#shw').onchange=e=>document.querySelectorAll('#gate input[name="p"],#gate input[name="c"]').forEach(i=>i.type=e.target.checked?'text':'password');
+ if(f('#gl'))f('#gl').onsubmit=once(async d=>{const r=await api('login',{u:d.u,p:d.p});
+  if(!r.ok)return go('login',{k:r.k||'er',t:r.err});
+  if(r.temp){gid=r.userId;gU={nombre:r.nombre,preg:r.preg};return go('change')}
+  enter(r.userId)});
+ if(f('#gc'))f('#gc').onsubmit=once(async d=>{const r=await api('changeTemp',d);
+  if(!r.ok)return go(r.back?'login':'change',{k:'er',t:r.err});enter(r.userId)});
+ if(f('#gf1'))f('#gf1').onsubmit=once(async d=>{const r=await api('forgot',{u:d.u});
+  if(!r.ok)return go('forgot1',{k:r.k||'er',t:r.err});gU={u:d.u,preg:r.preg};go('forgot2')});
+ if(f('#gf2'))f('#gf2').onsubmit=once(async d=>{const r=await api('reset',{u:gU.u,r:d.r,p:d.p,c:d.c});
+  if(!r.ok)return go(r.back?'login':'forgot2',{k:'er',t:r.err});gU=null;go('login',{k:'ok',t:'Contraseña actualizada. Ya puedes ingresar con tu nueva contraseña.'})});
+ if(f('#gs'))f('#gs').onsubmit=once(async d=>{const r=await api('setup',d);
+  if(!r.ok)return go(r.back?'login':'setup',{k:'er',t:r.err});enter(r.userId)})}
+function resetIdle(){clearTimeout(idle);if(cur)idle=setTimeout(()=>logout({k:'wa',t:'Tu sesión se cerró por 30 minutos de inactividad.'}),30*60*1000)}
+['click','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,resetIdle,{passive:true}));
+
+/* ---------- Aplicación ---------- */
+const TABS=[['Tablero','tablero'],['Socios','socios_ver'],['Cuentas por cobrar','cartera_ver'],['Registrar pago','pagos'],['Alertas','alertas'],['Bitácora','bitacora'],['Usuarios y categorías','admin'],['Mi cuenta',null]];
+function nav(){const ts=TABS.filter(t=>can(t[1])).map(t=>t[0]);if(!ts.includes(tab))tab=ts[0]||'';
+$('#nav').innerHTML=ts.map(t=>`<button class="${t===tab?'on':''}" data-t="${t}">${t}</button>`).join('');document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>{tab=b.dataset.t;render()});
+const u=me();$('#ses').innerHTML=`<span>👤 <b>${esc(u.nombre)}</b> <span class="mu">(${esc(u.rol)})</span></span><button class="btn g sm" id="out">Cerrar sesión</button>`;$('#out').onclick=()=>logout({k:'ok',t:'Sesión cerrada correctamente.'})}
+const tag=e=>`<span class="tag ${e==='Pagada'?'ok':e==='Vencida'?'er':'wa'}">${e}</span>`;
+function vTablero(){
+ const ab=S.obl.filter(o=>saldo(o)>0),tot=ab.reduce((a,o)=>a+saldo(o),0),ven=ab.filter(o=>mora(o)>0),tv=ven.reduce((a,o)=>a+saldo(o),0);
+ const nxt=k=>ab.filter(o=>{const d=days(o.venc,TODAY);return d>=0&&d<=k}).reduce((a,o)=>a+saldo(o),0);
+ const rec=S.pagos.filter(p=>p.fecha.slice(0,7)===TODAY.slice(0,7)).reduce((a,p)=>a+p.importe,0);
+ const B={'1–30':0,'31–60':0,'61–90':0,'+90':0};ven.forEach(o=>B[bucket(mora(o))]+=saldo(o));
+ const col=['#d9a441','#d97b3a','#c4513a','#8f2a22'],keys=Object.keys(B);
+ const morosos=[...new Set(ven.map(o=>o.socioId))];
+ return `<div class="grid">
+ <div class="k"><span class="mu">Cartera pendiente</span><b>${m(tot)}</b></div>
+ <div class="k"><span class="mu">Cartera vencida</span><b class="er">${m(tv)}</b><small>${tot?(tv/tot*100).toFixed(1):0}% de la cartera</small></div>
+ <div class="k"><span class="mu">Recaudado este mes</span><b class="ok">${m(rec)}</b></div>
+ <div class="k"><span class="mu">Socios en mora</span><b>${morosos.length}</b><small>de ${S.socios.length} socios</small></div>
+ <div class="k"><span class="mu">Vence hoy / 7 / 15 / 30 días</span><b style="font-size:15px">${m(nxt(0))} · ${m(nxt(7))} · ${m(nxt(15))} · ${m(nxt(30))}</b></div></div>
+ <div class="box"><h2>Antigüedad de cartera vencida</h2><div class="bar">${keys.map((k,i)=>`<i style="width:${tv?B[k]/tv*100:0}%;background:${col[i]}"></i>`).join('')}</div>
+ <div class="sc"><table><tr>${keys.map((k,i)=>`<th><span style="color:${col[i]}">●</span> ${k} días</th>`).join('')}</tr><tr>${keys.map(k=>`<td>${m(B[k])}</td>`).join('')}</tr></table></div></div>
+ <div class="box"><h2>Socios con pagos atrasados</h2><div class="sc"><table><tr><th>Socio</th><th>Concepto</th><th>Saldo</th><th>Días de mora</th></tr>${ven.sort((a,b)=>mora(b)-mora(a)).map(o=>`<tr><td>${esc(socio(o.socioId).nombre)}</td><td>${esc(o.concepto)}</td><td>${m(saldo(o))}</td><td class="er">${mora(o)}</td></tr>`).join('')||'<tr><td colspan=4 class="mu">Sin atrasos</td></tr>'}</table></div></div>
+ ${S.socios.length?'':'<div class="box"><b>Aún no hay datos.</b> Pulsa «Cargar datos de ejemplo» en Socios para ver el sistema funcionando.</div>'}`}
+function vSocios(){return (can('socios_edit')?`<div class="box"><h2>Nuevo socio</h2><form id="fs"><label>Nombre<input name="n" required></label><label>Identificación<input name="i"></label><label>Teléfono<input name="t"></label><label>Correo<input name="e" type="email"></label><label>Categoría<select name="c">${S.cats.map(c=>`<option>${esc(c)}`).join('')}</select></label><button class="btn">Guardar socio</button></form>
+ <p class="note">${S.socios.length||!can('admin')?'':'<button class="btn g" id="dm" type="button">Cargar datos de ejemplo</button>'}</p></div>`:'')+`
+ <div class="box sc"><table><tr><th>Código</th><th>Nombre</th><th>Categoría</th><th>Teléfono</th><th>Estado</th><th>Saldo</th></tr>${S.socios.map(s=>`<tr><td>${esc(s.codigo)}</td><td>${esc(s.nombre)}</td><td>${esc(s.cat)}</td><td>${esc(s.tel)}</td><td>${esc(s.estado)}</td><td>${m(S.obl.filter(o=>o.socioId===s.id).reduce((a,o)=>a+saldo(o),0))}</td></tr>`).join('')}</table></div>`}
+function vObl(){const opts=S.socios.map(s=>`<option value="${s.id}">${esc(s.nombre)}</option>`).join('');
+ return (can('cargos_crear')?`<div class="box"><h2>Nueva cuota o cargo</h2><form id="fo"><label>Socio<select name="s" required>${opts}</select></label><label>Concepto<select name="c"><option>Mensualidad<option>Inscripción<option>Entrenamiento<option>Competencia<option>Cargo extraordinario</select></label><label>Importe<input name="m" type="number" step="0.01" min="0.01" required></label><label>Vencimiento<input name="v" type="date" value="${addD(30)}" required></label><button class="btn">Generar</button></form></div>`:'')+`
+ <div class="box sc"><table><tr><th>Socio</th><th>Concepto</th><th>Vence</th><th>Importe</th><th>Saldo</th><th>Estado</th><th>Mora</th></tr>${S.obl.slice().sort((a,b)=>a.venc<b.venc?-1:1).map(o=>`<tr><td>${esc(socio(o.socioId).nombre)}</td><td>${esc(o.concepto)}</td><td>${o.venc}</td><td>${m(o.importe)}</td><td>${m(saldo(o))}</td><td>${tag(estado(o))}</td><td>${mora(o)&&saldo(o)?mora(o)+' d':''}</td></tr>`).join('')}</table></div>`}
+function vPago(){const ab=S.obl.filter(o=>saldo(o)>0);
+ return `<div class="box"><h2>Registrar cobro</h2><form id="fp"><label>Obligación<select name="o" required>${ab.map(o=>`<option value="${o.id}">${esc(socio(o.socioId).nombre)} · ${esc(o.concepto)} · saldo ${m(saldo(o))}</option>`).join('')}</select></label><label>Importe<input name="m" type="number" step="0.01" min="0.01" required></label><label>Método<select name="t"><option>Efectivo<option>Transferencia<option>Depósito<option>Tarjeta</select></label><label>Referencia<input name="r"></label><button class="btn">Registrar</button></form><p class="note">Un pago menor al saldo queda como abono; el saldo se recalcula solo y no puede superar lo adeudado.</p></div>
+ <div class="box sc"><h2>Últimos pagos</h2><table><tr><th>Fecha</th><th>Socio</th><th>Importe</th><th>Método</th><th>Ref.</th></tr>${S.pagos.slice().reverse().map(p=>`<tr><td>${p.fecha}</td><td>${esc(socio(p.socioId).nombre)}</td><td>${m(p.importe)}</td><td>${esc(p.metodo)}</td><td>${esc(p.ref)}</td></tr>`).join('')}</table></div>`}
+function vAl(){const a=alertas();return `<div class="box sc"><h2>Alertas según reglas de ejemplo (5 días antes · hoy · 1 · 8 · 15 días)</h2><table><tr><th>Acción</th><th>Socio</th><th>Concepto</th><th>Saldo</th><th>Mora</th></tr>${a.map(x=>`<tr><td><span class="tag ${x.l>=2?'er':'wa'}">${x.t}</span></td><td>${esc(socio(x.o.socioId).nombre)}</td><td>${esc(x.o.concepto)}</td><td>${m(saldo(x.o))}</td><td>${x.mo||''}</td></tr>`).join('')||'<tr><td colspan=5 class="mu">Sin alertas</td></tr>'}</table><p class="note">Vista previa de qué avisaría el sistema hoy. El envío automático por correo/WhatsApp requiere configurarse en el servidor.</p></div>`}
+function vLog(){return `<div class="box sc"><table><tr><th>Fecha y hora</th><th>Acción</th></tr>${S.log.map(l=>`<tr><td>${l.f}</td><td>${esc(l.t)}</td></tr>`).join('')||'<tr><td colspan=2 class="mu">Sin movimientos</td></tr>'}</table></div>`}
+let amsg=null,cmsg=null;
+const box=x=>x?`<p class="msg ${x.k}">${x.h||esc(x.t)}</p>`:'';
+const pwState=u=>!u.hash?'<span class="tag er">Sin contraseña</span>':u.temp?'<span class="tag wa">Temporal: pendiente de cambio</span>':'<span class="tag ok">Contraseña propia</span>';
+function vCuenta(){const u=me();const x=cmsg;cmsg=null;
+ return `${box(x)}<div class="box"><h2>Mis datos</h2><p style="margin:0">Usuario: <span class="cred">${esc(u.usuario)}</span> · Rol: ${esc(u.rol)}${u.email?' · Correo: '+esc(u.email):''}</p><p class="note">Pregunta de seguridad: ${u.preg?esc(u.preg):'<span class="er">no registrada</span>'}</p></div>
+ <div class="box"><h2>Cambiar contraseña</h2><form id="fa"><label>Contraseña actual<input type="password" name="a" required autocomplete="current-password"></label>${pwField('p','Nueva contraseña')}${pwField('c','Confirmar nueva')}<button class="btn">Cambiar contraseña</button></form><p class="note">Mínimo 8 caracteres, con letras y números.</p></div>
+ <div class="box"><h2>Pregunta de seguridad (para recuperar la contraseña)</h2><form id="fq"><label>Contraseña actual<input type="password" name="a" required autocomplete="current-password"></label>${qSelect(u.preg)}<button class="btn">Guardar pregunta</button></form></div>`}
+function vAdmin(){const x=amsg;amsg=null;
+ return `<div class="box"><h2>Categorías de socios</h2><form id="fc"><label>Nueva categoría<input name="n" required></label><button class="btn">Agregar</button></form>
+ <div class="sc"><table><tr><th>Nombre</th><th>Socios</th><th></th></tr>${S.cats.map((c,i)=>`<tr><td><input data-cn="${i}" value="${esc(c)}"></td><td>${S.socios.filter(x=>x.cat===c).length}</td><td><button class="btn g" data-cs="${i}">Guardar nombre</button> <button class="btn g" data-cd="${i}">Eliminar</button></td></tr>`).join('')}</table></div>
+ <p class="note">Al cambiar un nombre se actualizan los socios que lo usan. Solo se puede eliminar una categoría sin socios.</p></div>
+ ${box(x)}
+ <div class="box"><h2>Nuevo usuario</h2><form id="fu"><label>Nombre<input name="n" required></label><label>Usuario (para ingresar)<input name="u" required autocomplete="off"></label><label>Correo<input name="e" type="email"></label><label>Rol base<select name="r">${Object.keys(ROLES).map(r=>`<option>${r}`).join('')}</select></label><label>Contraseña temporal<input name="p" id="tpw" value="${tempPw()}" required minlength="6" autocomplete="off"></label><button type="button" class="btn g" id="gen">Generar otra</button><button class="btn">Crear usuario</button></form>
+ <p class="note">Puedes dejar la contraseña sugerida o escribir una predeterminada (por ejemplo, la misma para todos). En su primer ingreso, cada usuario deberá crear su propia contraseña y una pregunta de seguridad.</p></div>
+ ${S.users.map(u=>`<div class="box"><h2>${esc(u.nombre)} ${pwState(u)}</h2><div class="grid" style="margin-bottom:8px"><label>Rol<select data-ur="${u.id}">${Object.keys(ROLES).concat(ROLES[u.rol]?[]:[u.rol]).map(r=>`<option ${r===u.rol?'selected':''}>${esc(r)}`).join('')}</select></label><label>Nombre<input data-un="${u.id}" value="${esc(u.nombre)}"></label><label>Usuario<input data-uu="${u.id}" value="${esc(u.usuario)}"></label><label>Correo<input data-ue="${u.id}" type="email" value="${esc(u.email||'')}"></label></div>
+ <div class="grid">${Object.keys(PL).map(k=>`<label style="flex-direction:row;align-items:center;gap:6px;color:var(--tx)"><input type="checkbox" style="width:auto" data-u="${u.id}" data-p="${k}" ${u.perms[k]?'checked':''}>${PL[k]}</label>`).join('')}</div>
+ <p><button class="btn g" data-us="${u.id}">Guardar datos</button> <button class="btn g" data-ud="${u.id}">Eliminar usuario</button></p>
+ ${u.id===cur?'<p class="note">Para cambiar tu propia contraseña usa «Mi cuenta».</p>':`<form style="max-width:520px"><label>Restablecer con contraseña temporal<input data-tp="${u.id}" value="${tempPw()}" autocomplete="off"></label><button type="button" class="btn g" data-tt="${u.id}">Asignar temporal</button></form>`}</div>`).join('')}
+ <p class="note">Cada permiso se puede activar o quitar por usuario. Siempre debe quedar al menos un administrador.</p>`}
+function bindAdmin(){const q=s=>document.querySelectorAll(s),U=id=>S.users.find(u=>u.id===id),last=u=>u.perms.admin&&S.users.filter(x=>x.perms.admin).length===1;
+ const dupU=(us,u)=>!us||S.users.some(x=>x!==u&&(normA(x.usuario)===normA(us)||(x.email&&normA(x.email)===normA(us))));
+ if($('#fc'))$('#fc').onsubmit=e=>{e.preventDefault();const n=new FormData(e.target).get('n').trim();if(!n||S.cats.some(c=>c.toLowerCase()===n.toLowerCase())){alert('Nombre vacío o repetido.');return}S.cats.push(n);log('Categoría creada: '+n);save()};
+ q('[data-cs]').forEach(b=>b.onclick=()=>{const i=+b.dataset.cs,old=S.cats[i],n=document.querySelector(`[data-cn="${i}"]`).value.trim();if(!n||S.cats.some((c,k)=>k!==i&&c.toLowerCase()===n.toLowerCase())){alert('Nombre vacío o repetido.');return}S.socios.forEach(x=>{if(x.cat===old)x.cat=n});S.cats[i]=n;log(`Categoría renombrada: ${old} → ${n}`);save()});
+ q('[data-cd]').forEach(b=>b.onclick=()=>{const i=+b.dataset.cd,c=S.cats[i];if(S.socios.some(x=>x.cat===c)){alert('Hay socios en esta categoría.');return}if(S.cats.length<2){alert('Debe existir al menos una categoría.');return}S.cats.splice(i,1);log('Categoría eliminada: '+c);save()});
+ if($('#gen'))$('#gen').onclick=()=>$('#tpw').value=tempPw();
+ if($('#fu'))$('#fu').onsubmit=once(async d=>{const us=d.u.trim(),pw=d.p.trim();
+  if(dupU(us,null)){alert('Ese usuario ya existe o está vacío.');return}if(pw.length<6){alert('La contraseña temporal debe tener al menos 6 caracteres.');return}
+  const u={id:uid('u'),nombre:d.n.trim(),usuario:us,email:d.e.trim(),rol:d.r,perms:{...ROLES[d.r]}};S.users.push(u);log('Usuario creado: '+u.nombre+' ('+us+')');save();
+  const r=await api('adminTemp',{id:u.id,pw});
+  amsg=r.ok?{k:'ok',h:`Usuario creado. Entrega estos datos a <b>${esc(u.nombre)}</b>: usuario <span class="cred">${esc(us)}</span> · contraseña temporal <span class="cred">${esc(pw)}</span>. Al ingresar por primera vez deberá crear su propia contraseña.`}:{k:'er',t:'El usuario se creó, pero no se pudo asignar la contraseña: '+r.err};render()});
+ q('[data-tt]').forEach(b=>b.onclick=async()=>{const u=U(b.dataset.tt),pw=document.querySelector(`[data-tp="${u.id}"]`).value.trim(),nm=u.nombre,us=u.usuario;
+  const r=await api('adminTemp',{id:u.id,pw});
+  amsg=r.ok?{k:'ok',h:`Nueva contraseña temporal para <b>${esc(nm)}</b>: usuario <span class="cred">${esc(us)}</span> · contraseña <span class="cred">${esc(pw)}</span>. Deberá cambiarla al ingresar.`}:{k:'er',t:r.err};render()});
+ q('[data-ur]').forEach(x=>x.onchange=()=>{const u=U(x.dataset.ur);if(!ROLES[x.value])return;if(last(u)&&!ROLES[x.value].admin){alert('Debe quedar al menos un administrador.');render();return}u.rol=x.value;u.perms={...ROLES[x.value]};log(`Rol de ${u.nombre}: ${x.value}`);save()});
+ q('[data-p]').forEach(x=>x.onchange=()=>{const u=U(x.dataset.u);if(x.dataset.p==='admin'&&!x.checked&&last(u)){alert('Debe quedar al menos un administrador.');render();return}u.perms[x.dataset.p]=x.checked;u.rol='Personalizado';log(`Permiso «${PL[x.dataset.p]}» ${x.checked?'activado':'quitado'} a ${u.nombre}`);save()});
+ q('[data-us]').forEach(b=>b.onclick=()=>{const u=U(b.dataset.us),v=k=>document.querySelector(`[data-${k}="${u.id}"]`).value.trim(),n=v('un'),us=v('uu'),em=v('ue');
+  if(!n){alert('El nombre no puede quedar vacío.');return}if(dupU(us,u)){alert('Ese usuario ya existe o está vacío.');return}
+  u.nombre=n;u.usuario=us;u.email=em;log('Datos de usuario actualizados: '+n);save()});
+ q('[data-ud]').forEach(b=>b.onclick=()=>{const u=U(b.dataset.ud);if(u.id===cur){alert('No puedes eliminar tu propio usuario.');return}if(last(u)){alert('Debe quedar al menos un administrador.');return}if(!confirm('¿Eliminar a '+u.nombre+'?'))return;S.users=S.users.filter(x=>x!==u);log('Usuario eliminado: '+u.nombre);save()})}
+function render(){if(!ready)return;
+ const u=S.users.find(x=>x.id===cur);
+ if(!u||!u.hash||u.temp){cur=null;document.body.classList.add('out');gate();return}
+ document.body.classList.remove('out');$('#gate').innerHTML='';
+ nav();const v={Tablero:vTablero,Socios:vSocios,'Cuentas por cobrar':vObl,'Registrar pago':vPago,Alertas:vAl,'Bitácora':vLog,'Usuarios y categorías':vAdmin,'Mi cuenta':vCuenta}[tab];$('#app').innerHTML=v?v():'<div class="box">Este usuario no tiene permisos.</div>';bind();bindAdmin();resetIdle()}
+function bind(){const f=id=>$(id),fd=e=>Object.fromEntries(new FormData(e.target));
+ if(f('#dm'))f('#dm').onclick=demo;
+ if(f('#fs'))f('#fs').onsubmit=e=>{e.preventDefault();const d=fd(e),id=uid('s');S.socios.push({id,codigo:'S-'+String(S.socios.length+1).padStart(3,'0'),nombre:d.n,ident:d.i,tel:d.t,email:d.e,cat:d.c,estado:'Activo'});log('Socio creado: '+d.n);save()};
+ if(f('#fo'))f('#fo').onsubmit=e=>{e.preventDefault();const d=fd(e);S.obl.push({id:uid('o'),socioId:d.s,concepto:d.c,importe:+d.m,emision:TODAY,venc:d.v});log(`Cargo ${d.c} ${m(d.m)} a ${socio(d.s).nombre}`);save()};
+ if(f('#fp'))f('#fp').onsubmit=e=>{e.preventDefault();const d=fd(e),o=S.obl.find(x=>x.id===d.o);let imp=+d.m;if(imp>saldo(o)){alert('El importe supera el saldo ('+m(saldo(o))+').');return}
+  S.pagos.push({id:uid('p'),fecha:TODAY,socioId:o.socioId,oblId:o.id,importe:imp,metodo:d.t,ref:d.r});log(`Pago ${m(imp)} de ${socio(o.socioId).nombre} (${d.t})`);save()};
+ if(f('#fa'))f('#fa').onsubmit=once(async d=>{const r=await api('password',d);cmsg=r.ok?{k:'ok',t:'Contraseña cambiada correctamente.'}:{k:'er',t:r.err};render()});
+ if(f('#fq'))f('#fq').onsubmit=once(async d=>{const r=await api('question',d);cmsg=r.ok?{k:'ok',t:'Pregunta de seguridad guardada.'}:{k:'er',t:r.err};render()})}
+
+/* ---------- Arranque ---------- */
+(async()=>{
+ const C=window.CLUB_CONFIG||{api:'local'};
+ try{
+  if(C.api==='local'){
+   const K='club-makarios:state';MODE='local';
+   ref={set:x=>{try{localStorage.setItem(K,JSON.stringify(x))}catch(e){return Promise.reject(e)}return Promise.resolve()}};
+   let raw=null;try{raw=localStorage.getItem(K)}catch(e){}if(raw)S=Object.assign(blank(),JSON.parse(raw));A.ensure(S);
+   const id=SS.get();if(id&&S.users.some(u=>u.id===id&&u.hash&&!u.temp))cur=id;
+   $('#st').textContent='Modo local: los datos se guardan solo en este navegador'}
+  else{
+   MODE='server';BASE=(C.api||'').replace(/\/$/,'');TOK=TK.get();
+   ref={set:x=>TOK?fetch(BASE+'/api/state',{method:'PUT',headers:hdr(),body:JSON.stringify(x)}).then(r=>{if(r.status===401){expired();throw 0}if(!r.ok)throw 0}):Promise.resolve()};
+   const st=await fetch(BASE+'/api/auth/status',{method:'POST',headers:hdr(),body:'{}'}).then(r=>{if(!r.ok)throw 0;return r.json()});
+   NEEDSETUP=!!st.setup;await reload();
+   $('#st').textContent='Conectado al servidor ✓'}
+  ready=true;render()
+ }catch(e){ready=false;document.body.classList.add('out');$('#st').textContent='Sin conexión al servidor';
+  $('#gate').innerHTML=`<div class="lg"><div class="brand">🏹 Club Makarios</div><p class="msg er">No hay conexión con el servidor, así que no es posible iniciar sesión. Verifica que el servidor esté encendido y recarga la página.</p></div>`}})();
+</script></body></html>
